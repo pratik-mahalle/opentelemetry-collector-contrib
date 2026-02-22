@@ -55,7 +55,7 @@ The available scrapers are:
 | [network]    | All                          | Network interface I/O metrics & TCP connection metrics |
 | [nfs]        | Linux                        | NFS server and client metrics                          |
 | [paging]     | All                          | Paging/Swap space utilization and I/O metrics          |
-| [processes]  | Linux, Mac, FreeBSD, OpenBSD | Process count metrics                                  |
+| [processes]  | Linux, Mac, FreeBSD, OpenBSD | Process count metrics. `system.processes.created` is only available on Linux and OpenBSD.  |
 | [process]    | Linux, Windows, Mac, FreeBSD | Per process CPU, Memory, and Disk I/O metrics          |
 | [system]     | Linux, Windows, Mac          | Miscellaneous system metrics                           |
 
