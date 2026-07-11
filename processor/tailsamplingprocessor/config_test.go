@@ -148,6 +148,21 @@ func TestLoadConfig(t *testing.T) {
 									StringAttributeCfg: StringAttributeCfg{Key: "key2", Values: []string{"value1", "value2"}},
 								},
 							},
+							{
+								sharedPolicyCfg: sharedPolicyCfg{
+									Name: "test-and-policy-3",
+									Type: Not,
+								},
+								NotCfg: NotCfg{
+									SubPolicy: NotSubPolicyCfg{
+										sharedPolicyCfg: sharedPolicyCfg{
+											Name:       "test-and-policy-3-not-sub-policy",
+											Type:       Latency,
+											LatencyCfg: LatencyCfg{ThresholdMs: 1000},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -264,6 +279,37 @@ func TestConfigValidateTailStorageFeatureGate(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
+		})
+	}
+}
+
+func TestDefaultOTTLErrorMode(t *testing.T) {
+	testCases := []struct {
+		name        string
+		gateEnabled bool
+		expected    ottl.ErrorMode
+	}{
+		{
+			name:        "gate disabled returns propagate",
+			gateEnabled: false,
+			expected:    ottl.PropagateError,
+		},
+		{
+			name:        "gate enabled returns ignore",
+			gateEnabled: true,
+			expected:    ottl.IgnoreError,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			prev := metadata.ProcessorTailsamplingprocessorDefaultOTTLErrorModeIgnoreFeatureGate.IsEnabled()
+			require.NoError(t, featuregate.GlobalRegistry().Set(metadata.ProcessorTailsamplingprocessorDefaultOTTLErrorModeIgnoreFeatureGate.ID(), tc.gateEnabled))
+			t.Cleanup(func() {
+				require.NoError(t, featuregate.GlobalRegistry().Set(metadata.ProcessorTailsamplingprocessorDefaultOTTLErrorModeIgnoreFeatureGate.ID(), prev))
+			})
+
+			assert.Equal(t, tc.expected, defaultOTTLErrorMode())
 		})
 	}
 }

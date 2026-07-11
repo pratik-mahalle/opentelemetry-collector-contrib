@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/pkg/ottl"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor/internal/metadata"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor/internal/tailstorageextension"
 )
 
@@ -112,6 +113,9 @@ type CompositeSubPolicyCfg struct {
 // AndSubPolicyCfg holds the common configuration to all policies under and policy.
 type AndSubPolicyCfg struct {
 	sharedPolicyCfg `mapstructure:",squash"` // squash ensures fields are correctly decoded in embedded struct
+
+	// Configs for defining not policy under and policy.
+	NotCfg NotCfg `mapstructure:"not"`
 }
 
 // NotSubPolicyCfg holds the common configuration to the policy under the not policy.
@@ -296,6 +300,13 @@ type BooleanAttributeCfg struct {
 // OTTLConditionCfg holds the configurable setting to create a OTTL condition filter
 // sampling policy evaluator.
 type OTTLConditionCfg struct {
+	// ErrorMode determines how errors are handled when evaluating OTTL conditions.
+	// Valid values are "propagate", "ignore", and "silent".
+	// When left unset (empty string, the Go zero value), the effective default is
+	// controlled by the processor.tailsamplingprocessor.defaultOTTLErrorModeIgnore
+	// feature gate: "propagate" when the gate is disabled (current default), "ignore"
+	// when the gate is enabled. Explicitly setting this field always takes precedence
+	// over the feature gate.
 	ErrorMode           ottl.ErrorMode `mapstructure:"error_mode"`
 	SpanConditions      []string       `mapstructure:"span"`
 	SpanEventConditions []string       `mapstructure:"spanevent"`
@@ -386,4 +397,13 @@ func (cfg *Config) Validate() error {
 	}
 
 	return nil
+}
+
+// defaultOTTLErrorMode returns the default error mode for the ottl_condition policy.
+// The feature gate controls the transition from "propagate" (old default) to "ignore" (new default).
+func defaultOTTLErrorMode() ottl.ErrorMode {
+	if metadata.ProcessorTailsamplingprocessorDefaultOTTLErrorModeIgnoreFeatureGate.IsEnabled() {
+		return ottl.IgnoreError
+	}
+	return ottl.PropagateError
 }
